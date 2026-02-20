@@ -43,30 +43,27 @@ class Metsalaskuri:
         print(f"🌲 Etsitään kuvioita tiedostosta {GPKG_PATH} sijainnin perusteella...")
         
         try:
-            # 1. Luetaan kuviot
+            # 1. äR
             stands = gpd.read_file(GPKG_PATH, layer='stand', bbox=tuple(rajat_gdf.total_bounds), engine="pyogrio")
             if stands.empty:
                 print("⚠️ Tiedostosta ei löytynyt kuvioita tältä koordinaattialueelta.")
                 return
 
-            # Varmistetaan, että standid on pienellä stands-taulussa
             stands.columns = [c.lower() for c in stands.columns]
 
-            # 2. Luetaan puustotiedot
+            # 2. Reads the tree data
             summary = gpd.read_file(GPKG_PATH, layer='treestandsummary', engine="pyogrio")
             summary_df = pd.DataFrame(summary).drop(columns='geometry', errors='ignore')
             
-            # PAKOTETAAN sarakkeet pieniksi, jotta 'standid' löytyy varmasti
             summary_df.columns = [c.lower() for c in summary_df.columns]
 
-            # 3. Spatial Join: Mitkä kuviot leikkaavat kiinteistön rajoja?
+            # 3. Spatial Join:
             osumat = gpd.sjoin(stands, rajat_gdf, predicate='intersects')
             
-            # 4. Yhdistetään
+            # 4. Merge
             data = osumat.merge(summary_df, on='standid', how='left')
 
-            # 5. Laskenta (käytetään .get() tai varmistetaan sarakkeet)
-            # Varmistetaan että numeeriset sarakkeet ovat lukuja
+            # 5. Calculations
             for col in ['sawlogvolume', 'pulpwoodvolume', 'area']:
                 if col in data.columns:
                     data[col] = pd.to_numeric(data[col], errors='coerce').fillna(0)
